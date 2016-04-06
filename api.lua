@@ -10,11 +10,12 @@ local function code(str)
 	return str
 end
 
-function api.success(params)
+function api.success(params, method)
 	return {
 		body = json.encode({
 			status = 200,
 			params = params,
+			method = method,
 			statusText = constants('200')
 		}),
 		status = 200,

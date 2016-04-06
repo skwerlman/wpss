@@ -31,7 +31,7 @@ local router = {
 
 local COLON_BYTE = string.byte(':', 1)
 local WILDCARD_BYTE = string.byte('*', 1)
-local VALID_METHODS = {'get', 'post', 'put', 'patch', 'delete', 'trace', 'connect', 'options', 'head'}
+local HTTP_METHODS = {'get', 'post', 'put', 'patch', 'delete', 'trace', 'connect', 'options', 'head'}
 
 local function match_one_path(node, path, f)
   for token in path:gmatch("[^/.]+") do
@@ -110,7 +110,7 @@ end
 function Router:execute(method, path, ...)
   local f,params = self:resolve(method, path, ...)
   if not f then return nil, ('Could not resolve %s %s - %s'):format(method, path, params) end
-  return true, f(params, method)
+  return true, f(params)
 end
 
 function Router:match(method, path, f)
@@ -125,18 +125,16 @@ function Router:match(method, path, f)
   end
 end
 
-for _,method in ipairs(VALID_METHODS) do
-  Router[method] = function(self, path, f)     -- Router.get = function(self, path, f)
-    return self:match(method:upper(), path, f) --   return self:match('GET', path, f)
-  end                                          -- end
+for _,method in ipairs(HTTP_METHODS) do
+  Router[method] = function(self, path, f)  -- Router.get = function(self, path, f)
+    self:match(method:upper(), path, f)     --   return self:match('GET', path, f)
+  end                                       -- end
 end
 
 Router['any'] = function(self, path, f) -- match any method
-  local methodt = {}
-  for _,method in ipairs(VALID_METHODS) do
-    methodt[method:upper()] = {[path] = f}
+  for _,method in ipairs(HTTP_METHODS) do
+    self:match(method:upper(), path, function(params) return f(params, method) end)
   end
-  return self:match(methodt, path, f)
 end
 
 local router_mt = { __index = Router }
