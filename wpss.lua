@@ -2,34 +2,31 @@ local constants = require 'constants'
 local log = require 'log'
 local try = require 'try'
 
+local config = require 'config'
 local json = require 'cjson'
 local pegasus = require 'pegasus'
 local Handler = require 'pegasus.handler' -- needed for pretty logging
 local socket = require 'socket' -- needed for pretty logging
 
---[[ config ]]---------------------------------------------------------
-
--- TODO replace with config loader
-local serverInfo = {
-	serverName = 'pegasus',
-	serverKind = 'wpss',
-	interface = '*',
-	port = '80',
-	ssl=false, -- untested!
-	exposeErrors=true, -- disable in production!!!!
-	webRoot = '.'
-	-- more info?
-}
-
------------------------------------------------------------------------
-
-local assert = function(test, message)
+local asserte = function(test, message)
 	if not test then
 		log.error(debug.traceback(message or '', 1))
 		os.exit(1)
 	end
 	return test
 end
+
+local assert = function(test, message)
+	if not test then
+		log.fatal(debug.traceback(message or '', 1))
+		os.exit(1)
+	end
+	return test
+end
+
+assert(config.loadFile('wpss-config.lua'))
+
+local serverInfo = config.settings
 
 function pegasus:start(callback) -- override for custom start message
 	local handler = Handler:new(callback, self.location, self.plugins)
@@ -68,7 +65,7 @@ server:start(function (request, response)
 			local r = dofile 'routes.lua'
 
 			-- TODO be smarter about missing routes.lua
-			assert(r, 'Failed to load route file!')
+			asserte(r, 'Failed to load route file!')
 
 			log.trace('trying to ' .. req:method() .. ' ' .. req:path())
 
